@@ -1,0 +1,296 @@
+---
+title: "Final Assignment Analysis: Roadkill Relations- An assessment of wildlife-vehicle
+  collisions across New Hampshire, USA"
+author: "Clara Dawson"
+date: "2023-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+    
+library(lubridate)
+library(tidyverse)
+library(dplyr)
+
+```
+####Introduction
+
+#As the rapid growth of urbanization surges across the globe, the expansion of road infrastructure continues to increase. Parallel to this increase, the ecological effect that road traffic has on wildlife populations is a growing concern for many countries (Kučas et al. 2023). This expanding network poses a major threat to biodiversity, as habitat loss and fragmentation have resulted from roadways extending into what was once pure, pristine wildlife habitat (Ng et al. 2003). Landscape connectivity is incredibly important for supporting biological processes, such as animal movement and gene flow (Veals et al. 2022). Road systems that have impeded this connectivity have had significant impacts on wildlife, such as displacement from essential habitat, restriction of physical movements, and exposure to mortality by vehicle collisions (Kang et al. 2016). These wildlife-vehicle collisions occur where heavily travelled roads intersect with wildlife movement corridors (Kučas et al. 2023). Vehicular collisions threaten the lives of both humans and animals, while also resulting in significant damage to property. In the United States alone, collisions involving white-tailed deer result in approximately 200 human fatalities, 30 thousand injuries, and more than $1 billion in property damage annually (Fudge et al. 2007; Bruinderink and Hazebroek, 1996). It is suggested that wildlife species with the highest collision risk are large mammals, such as large carnivores and ungulates, because they regularly move over great distances (Ng et al. 2003). Large mammalian carnivores are particularly sensitive to habitat fragmentation and ultimately collision risk, as they tend to have traits that make them more vulnerable, such as large body size, large area requirements and slow population growth rates (Crooks et al. 2011). There have been numerous studies on causes of roadkill that suggest that there is a plethora of factors that can influence collision probability. Some studies have reported that traffic volume was highly correlated with roadkill risk, whereas others have found road topography to be an important factor in explaining roadkill rates (Kang et al. 2016). However, because different species have different dispersal behavior, explanatory variables for collision risk may differ significantly between species (Kang et al. 2016; Girardet et al. 2015). The wildlife-vehicle collision dataset provided by the New Hampshire Department of Transportation spans over five years (2015-2019) and provides the opportunity to examine species-specific roadkill data, as well as road features and weather data that may play a significant role in collision probability. This dataset was compiled from police reports across the state of New Hampshire. Out of the five years documented, only in the year 2017 did the reports include data on the specific animal involved in the collision (limited to moose, deer, black bear, turkey). In this study, I will use the dataset collected by NH DOT to observe temporal trends and additional relationships of independent factors with wildlife-vehicle collisions across the state. 
+
+####Inputting data
+```{r data}
+
+d <- read.csv("allroadkilldata.csv")
+names(d)
+
+```
+
+
+####Data Cleaning
+```{r data cleaning}
+
+#Standardized time
+# d$tp <- as.POSIXct(d$t,format = "%m/%d/%Y %H%M")
+# sum(is.na(d$tp))
+# d$tp
+# d$t[895]
+# d$t[981]
+# d$t[949:950]
+# str(d)
+# d$CRASHTIME <- hm(d$CRASHTIME)
+# print(d$CRASHTIME)
+
+# Convert military time numbers to standard time 
+d$CRASHTIME <- sprintf("%02d:%02d %s",
+                          d$CRASHTIME %/% 100, # Extract the hour
+                          d$CRASHTIME %% 100,  # Extract the minutes
+                          ifelse(d$CRASHTIME < 1200, "AM", "PM")  # Determine AM or PM
+)
+
+print(d$CRASHTIME)
+d$t <- paste(d$CRASHDATE,d$CRASHTIME)
+d$t
+
+d$tp <- as.POSIXct(d$t,format = "%m/%d/%Y %H:%M")
+d$tp
+sum(is.na(d$tp))
+
+hour(d$tp)
+minute(d$tp)
+
+# create hour column
+d$hour <- hour(d$tp)
+
+# create month column
+d$month <- month(d$tp)
+d$month_name <- month(d$tp, label = TRUE)
+
+# create year column
+d$year <- year(d$tp)
+
+
+#create new column with only 5 species-specific items- clean names
+d <- d %>%
+  mutate(Species = case_when(
+    CRASHTYPE %in% c("Animal", "Animal(Other)") ~ "Animal",
+    CRASHTYPE %in% c("Black Bear(Animal)") ~ "Black Bear", 
+    CRASHTYPE %in% c("Deer(Animal)") ~ "Deer", 
+    CRASHTYPE %in% c("Moose(Animal)") ~ "Moose", 
+    CRASHTYPE %in% c("Turkey(Animal)") ~ "Turkey", 
+  ))
+
+#create new object with just four species (clean version)
+speciesdata <- d %>%
+  filter(year==2017) %>%
+  filter(Species != "Animal")
+
+```
+####Methods
+
+#Data cleaning and organization
+#Using raw data from police reports provided by the New Hampshire Department of Transportation, a .csv file was created and imported into R studio using the “read.csv” command. The data was cleaned using the lubridate package, which was utilized to condense the date and time data into a standard format. The first step was to convert the “CRASHTIME” column from military time into standard time using the sprintf() function. This column contained times that ranged from having one to four digits depending on the time of day (1300 was one o’clock in the afternoon whereas 23 was understood as twenty-three minutes after midnight), so this function was used to convert all times to read as either AM or PM within the dataset. The next step was to convert the dataset into a standard date and time to a universally accepted format using the POSIXct() function. From this, a new column “tp” was made available with all the standardized crash times and dates compiled together. To make plotting simpler, new columns were made for hour, month, year, and day of the week. The tidyverse package was loaded into the R script in preparation for plotting various trends and relationships.
+
+#Temporal patterns: collision relationships based on hour, day of week, and month.
+#First, to determine if there were significant differences in wildlife-vehicle collisions based on the hour of the day, I created histograms using the hist() function for the average number of crashes per hour for the months of December and June. These months were chosen since they have the longest and shortest hours of daylight, respectively. A one-way ANOVA was then conducted to assess the influence of hour of the day on wildlife-vehicle collisions. 
+#Using ggplot2, a histogram was created using geom_histogram to assess the relationship between the hour of individual collisions and the month. With the geom_histogram function, I changed the bins to equal 24 so the data would read consistently with the hours of the day. I facet-wrapped the function to be associated with month_name and edited ylab and xlab to be “Count” and “Hour of the Day”, respectively. This procedure was repeated to assess the relationship between the hour of individual collisions and the year. One-way ANOVAs were conducted to assess the influence of both month and year on the hour that wildlife-vehicle collisions take place.
+#Using an “ifelse” statement, a new column was created to measure weekend vs weekday. In the creation of a new object “wday_2”, the condition statement indicated that if true, the data would read “Weekend” and if false it would read “Weekday”.  Using ggplot2, a histogram was created to assess the relationship between the hour of the day and the overall count of collisions with weekend vs. weekday. 
+
+#Evaluating species-specific collision data
+#To evaluate patterns between months of the year and collision data, I used ggplot2 to create a bar graph using geom_bar, where x is equal to month_name and y is equal to CRASHTYPE. To visualize the differences between species-specific data, I set the fill to equal “CRASHTYPE” in the ggplot2 function so that each species is a different color.
+#I then created a new object called “data2017b” where I used the filter function to restrict the year to equal 2017 and for CRASHTYPE to not be equal to either “Animal” or “Animal(Other)”. This allowed the object to only contain collision data for the four identified species (moose, deer, black bear, turkey). Once this object was created, the above procedure was conducted for the “data2017b” dataset. 
+
+#Relationships between collision data and independent factors
+#To determine if there were any factors that played a significant role in the probability of a wildlife-vehicle collision, several bar graphs were created in ggplot2 using geom_bar to show the relationship between collision abundance and light condition, weather condition and road alignment. A bar graph was also created to show which counties had the highest abundance of collisions over the course of the five-year study period.
+
+
+####Results and Analysis
+```{r crashes with respect to the hour}
+
+# histogram of crashes by hour in dec
+hist(hour(d$tp)[month(d$tp)==12]) 
+
+#Frequency of crashes per hour in the month of December over the 2015-2019 period. During the month of December, the number of recorded wildlife-vehicle collisions occurred more frequently late in the afternoon, peaking around 4:00-5:00pm. Fewer collisions occurred during the middle of the day, with the lowest numbers around 12:00pm.
+
+
+# histogram of crashes by hour in june
+hist(hour(d$tp)[month(d$tp)==6])
+
+#Frequency of crashes per hour in the month of June over the 2015-2019 period. During the month of June, the number of recorded wildlife-vehicle collisions was highest in the evening. The peak number of collisions occurred around 9:00-10:00pm, while the lowest number of collisions occurred around midnight. Overall, the number of collisions stayed relatively consistent throughout the day from 4:00am to 6:00pm.
+
+# histogram of hour of crash (facet by month)
+ggplot(d, aes(x = hour)) +
+  geom_histogram(bins = 24) +
+  facet_wrap(~ month_name) +
+  theme_bw() +
+  ylab("Count") +
+  xlab("Hour of the day")
+
+#run an anova for month vs hour
+aov_hour2 <- aov(month~hour, data = d)
+summary(aov_hour2)
+
+#Frequency of crashes by the hour for each individual month during 2015-2019. During the month of November, the magnitude of vehicle collisions was significantly higher than any other month, with a large spike of collisions occurring later in the afternoon around 4:00-5:00pm.  An Anova was run for hour vs month, and the p-value resulting from this analysis is 0.0134. This indicated that there was a significant relationship between the hour of the day and the month of the year for the collision occurrences. 
+
+
+#histograms of hour of crash (facet by year)
+ggplot(d, aes(x = hour)) +
+  geom_histogram(bins = 24) +
+  facet_wrap(~ year) +
+  theme_bw() +
+  ylab("Count") +
+  xlab("Hour of the day")
+
+#run an anova for year vs hour
+aov_year2 <- aov(hour~year, data = d)
+summary(aov_year2)
+
+#Average of crashes by hour for the years 2015-2019. Across the five years of data collection, the trend of collisions by hour stayed relatively consistent. An Anova was run for hour vs year, and the p-value was 0.0527, which indicated that there wasn’t a significant relationship between the two variables.
+
+# create day of the week column
+d$wday <- wday(d$tp, label = TRUE)
+
+# get new column that is weekday vs. weekend
+d$wday_2 <- ifelse(d$wday %in% c("Sat","Sun"), # condition statement
+                   "Weekend", # value if condition statement is true
+                   "Weekday") # value if condition statement is false
+
+# show what is happening above
+data.frame(d$wday,d$wday %in% c("Sat","Sun"))
+
+# crashes by hour faceted by weekend vs weekday
+ggplot(d, aes(x = hour)) +
+  geom_histogram(bins = 24) +
+  facet_wrap(~ wday_2) +
+  theme_bw() +
+  ylab("Count") +
+  xlab("Hour of the day")
+
+#Average crashes by hour on weekdays vs weekends. Over the course of the five year-study period, the magnitude of collisions occurring during the weekday was significantly higher than that on the weekend. The hourly trend for when collisions occurred overall was consistently highest later in the day around 4:00-5:00pm. 
+
+
+```
+
+```{r Collision patterns by species}
+
+#plot species specific crash data for each month (without general animals)
+ggplot(data = speciesdata, aes(x = month_name, y = Species, fill= Species)) + 
+  geom_bar(stat = "identity") +
+  ylab("Count") +
+  xlab("Months")
+
+#run an anova for month vs species
+aov_speciesmonth3 <- aov(month~Species, data = speciesdata)
+summary(aov_speciesmonth3)
+
+#species specific collisions per month during 2017. During the year 2017, moose collisions were the most common type of collision to occur in New Hampshire. Out of the months that had species-specific data recorded, June had the highest number of collisions occur. September and March were the months with the fewest recorded species-specific vehicle collisions. An Anova was run comparing the month with the species-specific vehicle collisions 
+
+#plot species specific crash data for each month 
+ggplot(data = d, aes(x = month_name, y = Species, fill= Species)) + 
+  geom_bar(stat = "identity") +
+  ylab("Count") +
+  xlab("Months")
+
+#run an anova for month vs general roadkill
+aov_speciesmonth2 <- aov(month~Species, data = d)
+summary(aov_speciesmonth2)
+
+#species specific collisions per month during 2015-2019. The magnitude of wildlife-vehicle collisions was highest in the month of November, followed by June. The number of collisions was lowest during the late winter/early spring months (Feb-April) as well as in August and September. An Anova was run comparing the statistical significance of the month and its effect on wildlife vehicle collisions. With the p-value being <2e-16, the analysis suggested that there was a significant relationship between the two variables, as well as provided strong evidence to reject the null hypothesis. The F-value, 34.97, was high and reinforced the evidence against the null hypothesis. 
+
+
+#plot the relationship between general roadkill and county with axis labels
+ggplot(data = d, aes(x = hour, y = COUNTY, fill = Species)) +
+  geom_bar(stat = "identity") +
+  ylab("County") +
+  xlab("Hour of the day")
+
+#run an anova for hour vs county (general roadkill)
+aov_county <- aov(hour~COUNTY, data = d)
+summary(aov_county)
+
+#species specific collisions per county during 2015-2019. Across the five-year period, the county of Hillsborough had the highest number of wildlife-vehicle collisions occur, while Coos and Sullivan counties had the lowest number of collisions. An Anova was run to analyze the relationship between county and hour of collisions. The p-value was 0.108, which did not provide strong evidence to indicate that there was a significant difference between the two variables. The F-value was also relatively small (1.604), further supporting this idea.
+
+
+#plot the relationship between species specific collisions and county with axis labels
+ggplot(data = speciesdata, aes(x = hour, y = COUNTY, fill= Species)) +
+  geom_bar(stat = "identity") +
+  ylab("County") +
+  xlab("Collisions")
+
+#run an anova for hour vs county (species-specifc data)
+aov_county2 <- aov(hour~COUNTY, data = speciesdata)
+summary(aov_county2)
+
+#species specific collisions per county during 2017 (Jan-Sept). In the year 2017, Merrimack County had highest number of moose collisions, followed by Grafton County. Merrimack had the highest number of species-specific collisions overall, with moose and deer dominating out of all four species. Carroll county had the lowest number of species-specific collisions in 2017. An Anova was run, and the analysis presented the p-value as 0.000798 and the F-value as 3.266. From this analysis, it is suggested that the county had a statistical significance on collisions occurrences. 
+
+```
+
+```{r Collision patterns with respect to independent variables}
+
+#plot the relationship between collisions and light condition 
+ggplot(data = d, aes(x = hour, y = LIGHTCONDI)) +
+  geom_bar(stat = "identity") +
+  ylab("Light Condition") +
+  xlab("Collision")
+
+#run an anova for hour vs light condition
+aov_light <- aov(hour~LIGHTCONDI, data = d)
+summary(aov_light)
+
+#collisions in relation to light condition during 2015-2019. Over all five years, most wildlife-vehicle collisions occurred when it was dark and there was no streetlight. An Anova analysis indicated that this relationship was significant, as the p-value was <2e-16 and F-value was 143.5, which worked together to enforce the idea that the null hypothesis can be rejected.
+
+
+#plot the relationship between collisions and road alignment 
+ggplot(data = d, aes(x = hour, y = ROADALIGNM)) +
+  geom_bar(stat = "identity") +
+  ylab("Road Alignment") +
+  xlab("Collision")
+
+#run an anova for hour vs road alignment
+aov_road <- aov(hour~ROADALIGNM, data = d)
+summary(aov_road)
+
+#collisions in relation to road alignment during 2015-2019. The largest amount of vehicle collisions that occurred on roads were identified to be straight and level. After running an Anova analysis, it was indicated that there was not enough strong evidence to suggest that there was a significant relationship between road alignment and vehicle collisions. The p-value was 0.668 and the F-value was 0.773.  
+
+
+#plot the relationship between collisions and weather condition 
+ggplot(data = d, aes(x = hour, y = WEATHERCON)) +
+  geom_bar(stat = "identity") +
+  ylab("Weather Condition") +
+  xlab("Collision")
+
+#run an anova for hour vs weather condition
+aov_weather <- aov(hour~WEATHERCON, data = d)
+summary(aov_weather)
+
+#collisions in relation to weather condition during 2015-2019. Most wildlife vehicle collisions across the five-year period occurred when the weather was clear. After running an Anova analysis, it is suggested that there were significant differences between the two variables, as the p-value was 0.0031. This value, alongside the F-value of 2.408, supported the rejection of the null hypothesis. 
+
+
+```
+####Discussion
+
+#Temporal patterns
+#Hourly patterns of wildlife-vehicle collisions varied with respect to month of the year. In June, peak collision time occurred around 9 or 10pm whereas peak collision time in December occurred much earlier in the day around 4 or 5pm. This is likely due to seasonality time changes, as the amount of daylight is significantly more in the month of June than it is during the month of December. Many animal species are crepuscular, which means that they are most active during dawn and dusk, so they are most likely to move across roads during time periods of lower light. In December, the sun begins to set around 4pm in New Hampshire, which lines up with a typical 9-5pm rush hour traffic schedule.  As the amount of traffic increases in hours of less light, the likelihood of wildlife-vehicle collisions to occur increases. 
+#Examining each of the twelve months averaged over the five-year study period, the hourly trend associated with light appears to stay relatively consistent. The months with shorter daylight hours (late fall through early spring) tend to have a higher magnitude of collisions occur in the late afternoon whereas the months with longer daylight hours tend to have more collisions occur later in the evening. The month of November across the five years had an overwhelmingly larger number of wildlife-vehicle collisions occur than any other month. While there isn’t any species-specific data recorded for the month of November, it can be inferred that these high numbers are because of increases in deer-vehicle collisions due to rut. During rut, deer movement is increased because individuals are in search of a mate. This increased movement behavior can make deer more susceptible to vehicle collisions. During the spring months (February-April), there are much lower collision numbers recorded compared to that of the fall months. A reason for this difference could be related to the denning season for many species, where less movement typically occurs due to individuals rearing their young. 
+#Breaking it down even further, wildlife-vehicle collisions were examined on their magnitude and hourly occurrence on weekdays compared to weekends. Overall, weekdays had a significantly higher number of collisions across the study period than weekends did. Peaks in collisions occurred around 6:00am and 5:00pm, which line up well with the typical rush hour schedules. It can be inferred from Figure 5 that most collisions during weekdays occurred when people were driving to and from work. On weekends, the number of wildlife-vehicle collisions decreased significantly, with the peak collision time occurring later in the day around 5:00pm and after.
+
+#Collision patterns by species
+#Alluding to data shown in Figure 6, most wildlife-vehicle collisions occurred during the month of November, closely followed by June. It is likely that the magnitude of vehicle collisions skyrockets in November due to deer rut, as well increased movement across many species due to dispersal and breeding. The high correlation between vehicle collisions and the month of June could be due to higher tourist traffic in New Hampshire during the summer. With higher road traffic, the likelihood of an animal being hit by a vehicle when crossing the road increases as well. Breaking it down into species-specific data, over 200 moose collisions were recorded, with most of them occurring during May-July. This analysis is limited, however, as there was only species-specific data recorded in 2017 for the months of January-September. Therefore, the exact count of species-specific vehicle collisions during the study period, let alone the year 2017, is unknown.
+#Across the study period, the counties that had the highest numbers of wildlife-vehicle collisions were Hillsborough, Rockingham, and Merrimack, respectively. These counties are situated in the lower-central and southeastern sections of New Hampshire, where larger cities such as Manchester, Concord and Nashua are located. In these highly populated areas of the state, there naturally would be a higher rate of road traffic, which would therefore increase the likelihood of an animal being hit by a vehicle.  From the data recorded, most moose-vehicle collisions occurred in Merrimack and Grafton counties. While several counties have suitable moose habitat in New Hampshire, these counties likely have higher collision rates because of higher traffic volume in Merrimack County and high tourist volume in Grafton County. 
+
+#Collision patterns with respect to independent variables
+#In Figure 10, the relationship between collision magnitude and light condition is shown to be that most collisions occurred on road sections after dark where there was no streetlight. Many animal species are most active during hours when there is no daylight. This likely results in higher animal movement near and across roads. While driving at night, it is still possible to see and avoid animals with the assistance of extra light sources (headlights, streetlights, etc.) With the absence of streetlights, the probability of a driver not seeing an animal crossing the street in front of them increases, therefore increasing the likelihood of a collision. 
+#The relationship between collision rate and road alignment displayed in Figure 11 shows that most collisions occur on roads that are straight and level. This was an interesting result, as straighter roads will allow the driver to see more ahead of what was in front of them, which in turn would allow them to see if an animal was crossing the road and could then make driving adjustments to avoid the animal. On the other hand, it can be inferred that on straighter, more level roads, people will tend to drive faster and potentially more carelessly, as they would believe to have more overall control of their vehicle. 
+#Derived from Figure 12, the correlation between collision rate and the weather condition shows that most collisions occur when the weather is completely clear. The same reasoning can be inferred from the idea stated for the comparison between collisions and road alignment. While it would make sense that poorer weather conditions would likely result in potential loss of vehicle control or reduced sight, increased vehicle collisions will occur when the weather conditions are clear because people are more likely to drive faster and with less caution. Additionally, reasoning for this relationship could also allude to the idea that animals are less likely to move around as much if there is bad weather. They would be more likely to hunker down and stay put, which would lead to fewer collisions on the roads.
+
+#Future research 
+#Future documentation of roadkill and vehicle collisions across the state of New Hampshire will be helpful to build upon this study in the future. Improvements in data collection from police reports should include more consistency in species-specific collection, such as expanding the list of animal names recorded and recording species-specific data throughout all twelve months. There was only one year that had any species-specific data recorded, and that data was limited to four species: moose, deer, black bear, and turkey. An understandable limitation of recording more diverse species recorded is that this data set is entirely gathered from police reports when a vehicle collision occurs. The four already-recorded species are on the larger body size. This would insinuate that there is a higher likelihood that hitting one of those species with a vehicle would cause more vehicular damage and potential human injury, in which a first responder would more likely be contacted. An additional method to gain more information on where wildlife is getting hit by vehicles is to implement a state-wide application where people can log roadkill or animals that they see crossing the road. Vermont has an app like this already in motion, and if established in New Hampshire, then it would not only provide a more accurate data set of where problem road crossings exist, but also will get the community interested and involved in the issue. With stronger datasets, actions to implement wildlife management tools, such as fencing and road crossing structures, can occur.
+
+
+
+####References
+#Crooks, K. R., C. L. Burdett, D. M. Theobald, C. Rondinini, and L. Boitani. 2011. Global patterns of fragmentation and connectivity of mammalian carnivore habitat. Philosophical Transactions of the Royal Society B: Biological Sciences 366:2642–2651.
+#Girardet, X., G. Conruyt-Rogeon, and J.-C. Foltête. 2015. Does regional landscape connectivity influence the location of roe deer roadkill hotspots? European Journal of Wildlife Research 61:731–742.
+#Kang, W., E. S. Minor, D. Woo, D. Lee, and C.-R. Park. 2016. Forest mammal roadkills as related to habitat connectivity in protected areas. Biodiversity and Conservation 25:2673–2686.
+#Kučas, A., L. Balčiauskas, and C. Lavalle. 2023. Identification of Urban and Wildlife Terrestrial Corridor Intersections for Planning of Wildlife-Vehicle Collision Mitigation Measures. Land 12:758.
+#Ng, S. J., J. W. Dole, R. M. Sauvajot, S. P. D. Riley, and T. J. Valone. 2004. Use of highway undercrossings by wildlife in southern California. Biological Conservation 115:499–507.
+#Veals, A. M., J. D. Holbrook, M. J. Cherry, T. A. Campbell, J. H. Young, and M. E. Tewes. 2023. Landscape connectivity for an endangered carnivore: habitat conservation and road mitigation for ocelots in the US. Landscape Ecology 38:363–381.
