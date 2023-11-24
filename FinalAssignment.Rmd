@@ -104,7 +104,7 @@ speciesdata <- d %>%
 
 
 #Relationships between collision data and independent factors
-#To determine if there were any factors that played a significant role in the probability of a wildlife-vehicle collision, several bar graphs were created in ggplot2 using geom_bar to show the relationship between collision abundance and light condition, weather condition and road alignment. Using the "d" dataset, I created three graphs all with x equaling hour and y equal to LIGHTCONDI, ROADALIGNM, and WEATHERCON, respectively. With each of these three graphs, three separate ANOVA models were run to determine these variable's significance on wildlife-vehicle collisions
+#To determine if there were any factors that played a significant role in the probability of a wildlife-vehicle collision, several bar graphs were created in ggplot2 using geom_bar to show the relationship between collision abundance and light condition, weather condition and road alignment. Using the "d" dataset, I created three graphs all with x equaling hour and y equal to LIGHTCONDI, ROADALIGNM, and WEATHERCON, respectively. With each of these three graphs, three separate ANOVA models were run to determine these variable's significance on wildlife-vehicle collisions.
 
 
 
