@@ -161,7 +161,11 @@ ggplot(data = speciesdata, aes(x = month_name, y = Species, fill= Species)) +
 aov_speciesmonth3 <- aov(month~Species, data = speciesdata)
 summary(aov_speciesmonth3)
 
-#species specific collisions per month during 2017. During the year 2017, moose collisions were the most common type of collision to occur in New Hampshire. Out of the months that had species-specific data recorded, June had the highest number of collisions occur. September and March were the months with the fewest recorded species-specific vehicle collisions. An Anova was run comparing the month with the species-specific vehicle collisions 
+#run a TUKEY test for aov_speciesmonth3
+tukeyspecies_month <- TukeyHSD(aov_speciesmonth3)
+print(tukeyspecies_month)
+
+#species specific collisions per month during 2017. During the year 2017, moose collisions were the most common type of collision to occur in New Hampshire. Out of the months that had species-specific data recorded, June had the highest number of collisions occur. September and March were the months with the fewest recorded species-specific vehicle collisions. An Anova was run comparing the month with the species-specific vehicle collisions. The p-value was 1.86e-7 and the F-value was 11.95. As these values are incredibly small and large, respectively, the ANOVA analysis suggests that there is significant relationship between the month of the year and species-specific collisions in the year 2017. Using this ANOVA model, I ran tukey test to help identify any significant differences between groups of species included in the data.
 
 #plot species specific crash data for each month 
 ggplot(data = d, aes(x = month_name, y = Species, fill= Species)) + 
