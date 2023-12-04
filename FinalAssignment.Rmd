@@ -97,15 +97,14 @@ speciesdata <- d %>%
 
 
 #Evaluating species-specific collision data
-#Using the mutate function, I created a new column named "Species" where the six CRASHTYPE variables were renamed and condensed into five variables. This allowed the "Animal" variable and "Animal(Other)" variable to be named the same. The other variables were renamed to where the (Other) part of the name was dropped (Moose(Other) was renamed to be Moose). 
-#I then created a new object called “speciesdata” where I used the filter function to restrict the year to equal 2017 and for "Species" to not be equal to either “Animal” or “Animal(Other)”. This allowed the object to only contain collision data for the four identified species (moose, deer, black bear, turkey). 
-#To evaluate patterns between months of the year and collision data, I used ggplot2 to create a bar graph using geom_bar, where x is equal to month_name and y is equal to Species. To visualize the differences between species-specific data, I set the fill to equal “Species” in the ggplot2 function so that each species is a different color. This process was conducted using both the "d" dataset and the "speciesdata" dataset. ANOVAs were ran and calculated for both models to determine if there was a statistical significance between the general WVC data and the species specific data with the months of the year. This analysis would determine if certain months typically held significant influence over the magnitude of animals getting hit by cars.  These ANOVA models were named aov_speciesmonth2 (dataset was "d") and aov_speciesmonth3 (dataset was "speciesdata").
-#For the species-specific collisions by month, I ran a Tukey Test to analyze any correlations between certain species. This test will help identify which specific groups of species are significantly different from one another. Using the aov_speciesmonth3, I ran a tukey test and named the outcome object tukey_speciesmonth.
-#I also used ggplot2 to evaluate the relationship between the magnitude of WVCs with respect to each county in NH. Using geom_bar, I replicated the above code with the substitution of hour for x and COUNTY for y. This process was initially done using the "d" dataset to evaulate the relationship between counties and all of the WVCs from 2015-2019, and then was replicated using the "speciesdata" dataset in order to take a closer look at which specific species were getting hit in which counties. ANOVAs were ran and analyzed for both models in order to compare if the area of where a county is has a significance of the wildlife-vehicle collision rate. 
-
+Using the mutate function, I created a new column named "Species" where the six CRASHTYPE variables were renamed and condensed into five variables. This allowed the "Animal" variable and "Animal(Other)" variable to be named the same. The other variables were renamed to where the (Other) part of the name was dropped (ex. Moose(Other) was renamed to be Moose). 
+I then created a new object called “speciesdata” where I used the filter function to restrict the year to equal 2017 and for "Species" to not be equal to either “Animal” or “Animal(Other)”. This allowed the object to only contain collision data for the four identified species (moose, deer, black bear, turkey). 
+To get the count of the species with respect to the month, I created two different objects derived from the d and speciesdata datasets. I then piped the count of the variables “Species” and “month_name”, and then grouped by both “Species” and “month_name” as well. From this, I created two new objects, plot_data and plot_data_general. To evaluate patterns between months of the year and collision data, I used ggplot2 to create a bar graph using geom_bar, where x is equal to “month_name” and y is equal to “n”. To visualize the differences between species-specific data, I set the fill to equal “Species” in the ggplot2 function so that each species is a different color. This process was conducted using both the plot_data and plot_data_general objects. ANOVAs were run and calculated for both models to determine if there was a statistical significance between the general WVC data and the species-specific data with the months of the year. This analysis would determine if certain months typically held a significant influence over the magnitude of animals getting hit by cars.  These ANOVA models were named aov_speciesmonth2 (dataset was "d") and aov_speciesmonth3 (dataset was "speciesdata").
+For the species-specific collisions by month, I ran a Tukey Test to analyze any correlations between certain species. This test will help identify which specific groups of species are significantly different from one another. Using the aov_speciesmonth3, I ran a Tukey test and named the outcome object tukey_speciesmonth.
+I also used ggplot2 to evaluate the relationship between the magnitude of WVCs with respect to each county in NH. Using geom_bar, I replicated the above code with the substitution of hour for x and COUNTY for y. This process was initially done using the "d" dataset to evaluate the relationship between counties and all the WVCs from 2015-2019, and then was replicated using the "speciesdata" dataset to take a closer look at which specific species were getting hit in which counties. ANOVAs were run and analyzed for both models to compare if the area of where a county is has a significance of the wildlife-vehicle collision rate. 
 
 #Relationships between collision data and independent factors
-#To determine if there were any factors that played a significant role in the probability of a wildlife-vehicle collision, several bar graphs were created in ggplot2 using geom_bar to show the relationship between collision abundance and light condition, weather condition and road alignment. Using the "d" dataset, I created three graphs all with x equaling hour and y equal to LIGHTCONDI, ROADALIGNM, and WEATHERCON, respectively. With each of these three graphs, three separate ANOVA models were run to determine these variable's significance on wildlife-vehicle collisions. These ANOVAS were named aov_light, aov_road, and aov_weather, respectively.
+To get the count of the species with respect to the different independent factors, I created three different objects derived from the d dataset. These objects (plot_light, plot_road, and plot_weather) were made by creating a count and group by of “Species” with their corresponding variable (LIGHTCONDI, ROADALIGNM, and WEATHERCON). To determine if there were any factors that played a significant role in the probability of a wildlife-vehicle collision, several bar graphs were created in ggplot2 using geom_bar to show the relationship between collision abundance and light condition, weather condition and road alignment. Using the three newly created objects, I created three graphs all with x equaling n and y equal to LIGHTCONDI, ROADALIGNM, and WEATHERCON, respectively. With each of these three graphs, three separate ANOVA models were run to determine these variable's significance on wildlife-vehicle collisions. These ANOVAS were named aov_light, aov_road, and aov_weather, respectively.
 
 
 
@@ -207,11 +206,16 @@ summary(aov_speciesmonth2)
 #species specific collisions per month during 2015-2019. The magnitude of wildlife-vehicle collisions was highest in the month of November, followed by June. The number of collisions was lowest during the late winter/early spring months (Feb-April) as well as in August and September. An Anova was run comparing the statistical significance of the month and its effect on wildlife vehicle collisions. With the p-value being <2e-16, the analysis suggested that there was a significant relationship between the two variables, as well as provided strong evidence to reject the null hypothesis. The F-value, 34.97, was high and reinforced the evidence against the null hypothesis. 
 
 
-#plot the relationship between general roadkill and county with axis labels
-ggplot(data = d, aes(x = hour, y = COUNTY, fill = Species)) +
+#make a count of species collisions by month
+plot_data_general <- d %>%
+  count(Species, month_name) %>%
+  group_by(month_name, Species)
+
+#plot general roadkill crash data for each month 
+ggplot(data = plot_data_general, aes(x = month_name, y = n, fill= Species)) + 
   geom_bar(stat = "identity") +
-  ylab("County") +
-  xlab("Hour of the day")
+  ylab("Count") +
+  xlab("Months")
 
 #run an anova for hour vs county (general roadkill)
 aov_county <- aov(hour~COUNTY, data = d)
@@ -220,11 +224,16 @@ summary(aov_county)
 #species specific collisions per county during 2015-2019. Across the five-year period, the county of Hillsborough had the highest number of wildlife-vehicle collisions occur, while Coos and Sullivan counties had the lowest number of collisions. An Anova was run to analyze the relationship between county and hour of collisions. The p-value was 0.108, which did not provide strong evidence to indicate that there was a significant difference between the two variables. The F-value was also relatively small (1.604), further supporting this idea.
 
 
-#plot the relationship between species specific collisions and county with axis labels
-ggplot(data = speciesdata, aes(x = hour, y = COUNTY, fill= Species)) +
+# make categorical data continuous, convert species to numbers
+plot_data <- speciesdata %>%
+  count(Species, month_name) %>%
+  group_by(month_name, Species)
+
+#plot species specific crash data for each month (without general animals)
+ggplot(data = plot_data, aes(x = month_name, y = n, fill= Species)) + 
   geom_bar(stat = "identity") +
-  ylab("County") +
-  xlab("Collisions")
+  ylab("Count") +
+  xlab("Months")
 
 #run an anova for hour vs county (species-specifc data)
 aov_county2 <- aov(hour~COUNTY, data = speciesdata)
@@ -236,8 +245,13 @@ summary(aov_county2)
 
 ```{r Collision patterns with respect to independent variables}
 
+# make categorical data continuous, convert species to numbers
+plot_light <- d %>%
+  count(Species, LIGHTCONDI) %>%
+  group_by(LIGHTCONDI, Species)
+
 #plot the relationship between collisions and light condition 
-ggplot(data = d, aes(x = hour, y = LIGHTCONDI)) +
+ggplot(data = plot_light, aes(x = n, y = LIGHTCONDI)) +
   geom_bar(stat = "identity") +
   ylab("Light Condition") +
   xlab("Collision")
@@ -249,8 +263,13 @@ summary(aov_light)
 #collisions in relation to light condition during 2015-2019. Over all five years, most wildlife-vehicle collisions occurred when it was dark and there was no streetlight. An Anova analysis indicated that this relationship was significant, as the p-value was <2e-16 and F-value was 143.5, which worked together to enforce the idea that the null hypothesis can be rejected.
 
 
+# make categorical data continuous, convert species to numbers
+plot_road <- d %>%
+  count(Species, ROADALIGNM) %>%
+  group_by(ROADALIGNM, Species)
+
 #plot the relationship between collisions and road alignment 
-ggplot(data = d, aes(x = hour, y = ROADALIGNM)) +
+ggplot(data = plot_road, aes(x = n, y = ROADALIGNM)) +
   geom_bar(stat = "identity") +
   ylab("Road Alignment") +
   xlab("Collision")
@@ -262,8 +281,13 @@ summary(aov_road)
 #collisions in relation to road alignment during 2015-2019. The largest amount of vehicle collisions that occurred on roads were identified to be straight and level. After running an Anova analysis, it was indicated that there was not enough strong evidence to suggest that there was a significant relationship between road alignment and vehicle collisions. The p-value was 0.668 and the F-value was 0.773.  
 
 
+# make categorical data continuous, convert species to numbers
+plot_weather <- d %>%
+  count(Species, WEATHERCON) %>%
+  group_by(WEATHERCON, Species)
+
 #plot the relationship between collisions and weather condition 
-ggplot(data = d, aes(x = hour, y = WEATHERCON)) +
+ggplot(data = plot_weather, aes(x = n, y = WEATHERCON)) +
   geom_bar(stat = "identity") +
   ylab("Weather Condition") +
   xlab("Collision")
