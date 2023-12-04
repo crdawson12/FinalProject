@@ -151,8 +151,13 @@ ggplot(d, aes(x = hour)) +
 
 ```{r Collision patterns by species}
 
+# make categorical data continuous, convert species to numbers
+plot_data <- speciesdata %>%
+  count(Species, month_name) %>%
+  group_by(month_name, Species)
+
 #plot species specific crash data for each month (without general animals)
-ggplot(data = speciesdata, aes(x = month_name, y = Species, fill= Species)) + 
+ggplot(data = plot_data, aes(x = month_name, y = n, fill= Species)) + 
   geom_bar(stat = "identity") +
   ylab("Count") +
   xlab("Months")
@@ -167,8 +172,13 @@ print(tukeyspecies_month)
 
 #species specific collisions per month during 2017. During the year 2017, moose collisions were the most common type of collision to occur in New Hampshire. Out of the months that had species-specific data recorded, June had the highest number of collisions occur. September and March were the months with the fewest recorded species-specific vehicle collisions. An Anova was run comparing the month with the species-specific vehicle collisions. The p-value was 1.86e-7 and the F-value was 11.95. As these values are incredibly small and large, respectively, the ANOVA analysis suggests that there is significant relationship between the month of the year and species-specific collisions in the year 2017. Using this ANOVA model, I ran tukey test to help identify any significant differences between groups of species included in the data. From this test, six comparisons were made amongst the four species, having each of the species be statisically compared to each of the three others. Black bear collisions did not have a statiscally significant difference with any of the other three species, as the p-value calcuated from each of the comparisions was greater than 0.05. The black-bear comparisions also had negative differences with the other species, with the exception of the black-bear-turkey comparison, which had a difference of 0.78. This is likely due to the fact that there were only 8 recorded instances of a WVC with a black bear, therefore not having enough data. The other three species comparisons that were modeled from the Tukey Test were all statistically significant, as all of the p-values were less than 0.05. The p-value calucated from moose-deer was 0.0000184 with a difference of 1.24, turkey-deer was 0.0000005 with a difference of 2.14, and moose-turkey was 0.0475558 with a difference of 0.9. 
 
-#plot species specific crash data for each month 
-ggplot(data = d, aes(x = month_name, y = Species, fill= Species)) + 
+#make a count of species collisions by month
+plot_data_general <- d %>%
+  count(Species, month_name) %>%
+  group_by(month_name, Species)
+
+#plot general roadkill crash data for each month 
+ggplot(data = plot_data_general, aes(x = month_name, y = n, fill= Species)) + 
   geom_bar(stat = "identity") +
   ylab("Count") +
   xlab("Months")
@@ -184,7 +194,7 @@ summary(aov_speciesmonth2)
 ggplot(data = d, aes(x = hour, y = COUNTY, fill = Species)) +
   geom_bar(stat = "identity") +
   ylab("County") +
-  xlab("Hour of the day")
+  xlab("Collisions")
 
 #run an anova for hour vs county (general roadkill)
 aov_county <- aov(hour~COUNTY, data = d)
@@ -210,8 +220,13 @@ summary(aov_county2)
 
 ```{r Collision patterns with respect to independent variables}
 
+# make categorical data continuous, convert species to numbers
+plot_light <- d %>%
+  count(Species, LIGHTCONDI) %>%
+  group_by(LIGHTCONDI, Species)
+
 #plot the relationship between collisions and light condition 
-ggplot(data = d, aes(x = hour, y = LIGHTCONDI)) +
+ggplot(data = plot_light, aes(x = n, y = LIGHTCONDI)) +
   geom_bar(stat = "identity") +
   ylab("Light Condition") +
   xlab("Collision")
@@ -223,8 +238,12 @@ summary(aov_light)
 #collisions in relation to light condition during 2015-2019. Over all five years, most wildlife-vehicle collisions occurred when it was dark and there was no streetlight. An Anova analysis indicated that this relationship was significant, as the p-value was <2e-16 and F-value was 143.5, which worked together to enforce the idea that the null hypothesis can be rejected.
 
 
+plot_road <- d %>%
+  count(Species, ROADALIGNM) %>%
+  group_by(ROADALIGNM, Species)
+
 #plot the relationship between collisions and road alignment 
-ggplot(data = d, aes(x = hour, y = ROADALIGNM)) +
+ggplot(data = plot_road, aes(x = n, y = ROADALIGNM)) +
   geom_bar(stat = "identity") +
   ylab("Road Alignment") +
   xlab("Collision")
@@ -236,8 +255,13 @@ summary(aov_road)
 #collisions in relation to road alignment during 2015-2019. The largest amount of vehicle collisions that occurred on roads were identified to be straight and level. After running an Anova analysis, it was indicated that there was not enough strong evidence to suggest that there was a significant relationship between road alignment and vehicle collisions. The p-value was 0.668 and the F-value was 0.773.  
 
 
+# make categorical data continuous, convert species to numbers
+plot_weather <- d %>%
+  count(Species, WEATHERCON) %>%
+  group_by(WEATHERCON, Species)
+
 #plot the relationship between collisions and weather condition 
-ggplot(data = d, aes(x = hour, y = WEATHERCON)) +
+ggplot(data = plot_weather, aes(x = n, y = WEATHERCON)) +
   geom_bar(stat = "identity") +
   ylab("Weather Condition") +
   xlab("Collision")
